@@ -39,6 +39,9 @@ type alias Pos =
     { x : Int
     , y : Int
     , nextDir : NextPosDirection
+
+    -- Nothing represents not initialized
+    , isRepeatingFraction : Maybe Bool
     }
 
 
@@ -107,7 +110,7 @@ type alias Model =
 
 init : Model
 init =
-    Model 1000 800
+    Model 10000 900
 
 
 
@@ -161,7 +164,7 @@ viewRects model =
 
         ps : List Pos
         ps =
-            repeatedlyCompose nextPos (Pos 0 0 Right) model.numSquares
+            repeatedlyCompose nextPos (Pos 0 0 Right Nothing) model.numSquares
 
         sps : List (S.Svg Msg)
         sps =
