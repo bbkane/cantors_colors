@@ -128,7 +128,7 @@ update msg model =
 
 
 view =
-    viewSvgNumbers
+    viewRects
 
 
 viewSvgNumbers : Model -> H.Html Msg
@@ -163,26 +163,48 @@ viewSvgNumbers model =
         sips
 
 
-viewText : Model -> H.Html Msg
-viewText model =
-    H.text <| Debug.toString <| repeatedlyCompose nextPos (Pos 0 0 Right) 10
+viewRects : Model -> H.Html Msg
+viewRects model =
+    let
+        getFillAndOpacity : Int -> Int -> List (S.Attribute msg)
+        getFillAndOpacity x y =
+            case y of
+                0 ->
+                    [ Sa.fill "red", Sa.fillOpacity "1" ]
 
+                _ ->
+                    -- TODO: this breaks if x > y!
+                    [ Sa.fill "black", Sa.fillOpacity (String.fromFloat (toFloat x / (toFloat x + toFloat y))) ]
 
-viewSvg : Model -> H.Html Msg
-viewSvg model =
+        viewRect : Int -> Int -> S.Svg Msg
+        viewRect x y =
+            S.rect
+                (List.append
+                    [ Sa.x (String.fromInt x)
+                    , Sa.y (String.fromInt y)
+                    , Sa.width "1"
+                    , Sa.height "1"
+                    ]
+                    (getFillAndOpacity x y)
+                )
+                []
+
+        ps : List Pos
+        ps =
+            repeatedlyCompose nextPos (Pos 0 0 Right) 1000
+
+        sps : List (S.Svg Msg)
+        sps =
+            List.map (\p -> viewRect p.x p.y) ps
+    in
     S.svg
         [ Sa.width (String.fromInt model.width)
         , Sa.height (String.fromInt model.width)
-        , Sa.viewBox "-10 0 100"
+        , Sa.viewBox "0 0 100 100"
         ]
-        [ S.rect
-            [ Sa.x "0"
-            , Sa.y "0"
-            , Sa.width (String.fromInt model.width)
-            , Sa.height (String.fromInt model.width)
-            , Sa.rx "0"
-            , Sa.ry "0"
-            , Sa.color "black"
-            ]
-            []
-        ]
+        sps
+
+
+viewText : Model -> H.Html Msg
+viewText model =
+    H.text <| Debug.toString <| repeatedlyCompose nextPos (Pos 0 0 Right) 10

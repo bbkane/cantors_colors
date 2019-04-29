@@ -1,5 +1,9 @@
 # Elm Starter Project
 
+# Notes
+
+TODO:
+
 # Install
 
 ## Base
