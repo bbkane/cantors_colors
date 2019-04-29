@@ -100,12 +100,14 @@ repeatedlyComposeHelper func val timesLeft acc =
 
 
 type alias Model =
-    { width : Int, height : Int }
+    { numSquares : Int
+    , diagramWidth : Int
+    }
 
 
 init : Model
 init =
-    Model 500 500
+    Model 1000 800
 
 
 
@@ -131,38 +133,6 @@ view =
     viewRects
 
 
-viewSvgNumbers : Model -> H.Html Msg
-viewSvgNumbers model =
-    let
-        viewSvgNumber : Int -> Int -> Int -> S.Svg Msg
-        viewSvgNumber x y num =
-            S.text_
-                [ Sa.x (String.fromInt x)
-                , Sa.y (String.fromInt y)
-                ]
-                [ S.text (String.fromInt num) ]
-
-        ps : List Pos
-        ps =
-            repeatedlyCompose nextPos (Pos 0 0 Right) 10
-
-        ips : List ( Int, Pos )
-        ips =
-            List.indexedMap Tuple.pair ps
-
-        sips : List (S.Svg Msg)
-        sips =
-            List.map (\ip -> viewSvgNumber (Tuple.second ip).x (Tuple.second ip).y (Tuple.first ip)) ips
-    in
-    S.svg
-        [ Sa.width (String.fromInt model.width)
-        , Sa.height (String.fromInt model.width)
-        , Sa.viewBox "-1 -1 5 5"
-        , Sa.style "font: 1px sans-serif"
-        ]
-        sips
-
-
 viewRects : Model -> H.Html Msg
 viewRects model =
     let
@@ -173,7 +143,7 @@ viewRects model =
                     [ Sa.fill "red", Sa.fillOpacity "1" ]
 
                 _ ->
-                    -- TODO: this breaks if x > y!
+                    -- As x increases, opacity increases
                     [ Sa.fill "black", Sa.fillOpacity (String.fromFloat (toFloat x / (toFloat x + toFloat y))) ]
 
         viewRect : Int -> Int -> S.Svg Msg
@@ -191,20 +161,20 @@ viewRects model =
 
         ps : List Pos
         ps =
-            repeatedlyCompose nextPos (Pos 0 0 Right) 1000
+            repeatedlyCompose nextPos (Pos 0 0 Right) model.numSquares
 
         sps : List (S.Svg Msg)
         sps =
             List.map (\p -> viewRect p.x p.y) ps
+
+        -- Get side length : See notebook pic for derivation...
+        -- but numSquares is basically half the area of the enclosing diagram
+        sideLength =
+            String.fromInt <| ceiling (sqrt (toFloat model.numSquares * 2)) + 1
     in
     S.svg
-        [ Sa.width (String.fromInt model.width)
-        , Sa.height (String.fromInt model.width)
-        , Sa.viewBox "0 0 100 100"
+        [ Sa.width <| String.fromInt model.diagramWidth
+        , Sa.height <| String.fromInt model.diagramWidth
+        , Sa.viewBox <| "0 0 " ++ sideLength ++ " " ++ sideLength
         ]
         sps
-
-
-viewText : Model -> H.Html Msg
-viewText model =
-    H.text <| Debug.toString <| repeatedlyCompose nextPos (Pos 0 0 Right) 10
