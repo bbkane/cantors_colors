@@ -5,6 +5,7 @@ import Debug
 import Html as H
 import Html.Attributes as Ha
 import Html.Events exposing (onClick)
+import Set
 import Svg as S
 import Svg.Attributes as Sa
 
@@ -19,20 +20,15 @@ main =
 -- -- Ratio
 
 
-gcd : ( Int, Int ) -> Int
-gcd ( a, b ) =
-    if b == 0 then
-        a
-
-    else
-        gcd ( b, modBy a b )
-
-
 type NextPosDirection
     = Right
     | DownLeft
     | Down
     | UpRight
+
+
+type alias IsRepeatedFraction =
+    Maybe Bool
 
 
 type alias Pos =
@@ -41,11 +37,12 @@ type alias Pos =
     , nextDir : NextPosDirection
 
     -- Nothing represents not initialized
-    , isRepeatingFraction : Maybe Bool
+    , isRepeatedFraction : IsRepeatedFraction
     }
 
 
-{-| TODO: test
+{-| Generate coordinates from an initial position and direction in a zigzag pattern
+Initial direction shoudl be Right or Down
 -}
 nextPos : Pos -> Pos
 nextPos current =
@@ -98,6 +95,56 @@ repeatedlyComposeHelper func val timesLeft acc =
         repeatedlyComposeHelper func nextVal (timesLeft - 1) (List.append acc [ nextVal ])
 
 
+gcd : Int -> Int -> Int
+gcd a b =
+    if b == 0 then
+        a
+
+    else
+        gcd b (remainderBy b a)
+
+
+
+-- TODO: test this maybe
+
+
+markRepeatedFractions : List Pos -> List Pos
+markRepeatedFractions positions =
+    markRepeatedFractionsHelper positions Set.empty []
+
+
+markRepeatedFractionsHelper : List Pos -> Set.Set ( Int, Int ) -> List Pos -> List Pos
+markRepeatedFractionsHelper positions seen acc =
+    case positions of
+        [] ->
+            acc
+
+        p :: ps ->
+            -- Special case for 0s - insert singleton and mark repeated
+            if p.x == 0 || p.y == 0 then
+                markRepeatedFractionsHelper ps (Set.insert ( 0, 1 ) seen) (List.append [ { p | isRepeatedFraction = Just True } ] acc)
+
+            else
+                let
+                    fgcd =
+                        -- Debug.log "gcd" <| gcd (Debug.log "x" p.x) (Debug.log "y" p.y)
+                        gcd p.x p.y
+
+                    reduced =
+                        ( p.x // fgcd, p.y // fgcd )
+                in
+                if Set.member reduced seen then
+                    markRepeatedFractionsHelper ps seen (List.append [ { p | isRepeatedFraction = Just True } ] acc)
+
+                else
+                    markRepeatedFractionsHelper ps (Set.insert reduced seen) (List.append [ { p | isRepeatedFraction = Just False } ] acc)
+
+
+makeListOfPositions : Int -> List Pos
+makeListOfPositions numSquares =
+    repeatedlyCompose nextPos (Pos 0 0 Right Nothing) numSquares |> markRepeatedFractions
+
+
 
 -- MODEL
 
@@ -105,12 +152,20 @@ repeatedlyComposeHelper func val timesLeft acc =
 type alias Model =
     { numSquares : Int
     , diagramWidth : Int
+    , positions : List Pos
     }
 
 
 init : Model
 init =
-    Model 10000 900
+    let
+        numSquares =
+            5000
+
+        diagramWidth =
+            900
+    in
+    Model numSquares diagramWidth (makeListOfPositions numSquares)
 
 
 
@@ -139,18 +194,20 @@ view =
 viewRects : Model -> H.Html Msg
 viewRects model =
     let
-        getFillAndOpacity : Int -> Int -> List (S.Attribute msg)
-        getFillAndOpacity x y =
-            case y of
-                0 ->
-                    [ Sa.fill "red", Sa.fillOpacity "1" ]
+        getFillAndOpacity : Int -> Int -> IsRepeatedFraction -> List (S.Attribute msg)
+        getFillAndOpacity x y irf =
+            if y == 0 then
+                [ Sa.fill "red", Sa.fillOpacity "1" ]
 
-                _ ->
-                    -- As x increases, opacity increases
-                    [ Sa.fill "black", Sa.fillOpacity (String.fromFloat (toFloat x / (toFloat x + toFloat y))) ]
+            else if irf == Just True then
+                [ Sa.fill "blue", Sa.fillOpacity "1" ]
 
-        viewRect : Int -> Int -> S.Svg Msg
-        viewRect x y =
+            else
+                -- As x increases, opacity increases
+                [ Sa.fill "black", Sa.fillOpacity (String.fromFloat (toFloat x / (toFloat x + toFloat y))) ]
+
+        viewRect : Int -> Int -> IsRepeatedFraction -> S.Svg Msg
+        viewRect x y irf =
             S.rect
                 (List.append
                     [ Sa.x (String.fromInt x)
@@ -158,19 +215,15 @@ viewRects model =
                     , Sa.width "1"
                     , Sa.height "1"
                     ]
-                    (getFillAndOpacity x y)
+                    (getFillAndOpacity x y irf)
                 )
                 []
 
-        ps : List Pos
-        ps =
-            repeatedlyCompose nextPos (Pos 0 0 Right Nothing) model.numSquares
-
         sps : List (S.Svg Msg)
         sps =
-            List.map (\p -> viewRect p.x p.y) ps
+            List.map (\p -> viewRect p.x p.y p.isRepeatedFraction) model.positions
 
-        -- Get side length : See notebook pic for derivation...
+        -- Get side length : See notebook pic for derivation
         -- but numSquares is basically half the area of the enclosing diagram
         sideLength =
             String.fromInt <| ceiling (sqrt (toFloat model.numSquares * 2)) + 1

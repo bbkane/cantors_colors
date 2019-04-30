@@ -1,39 +1,21 @@
 module Main exposing (main)
 
+import Debug
 import Html
-
-
-type alias IsRepeatFraction =
-    Maybe Bool
-
-
-printBlah : IsRepeatFraction -> String
-printBlah x =
-    case x of
-        Just b ->
-            case b of
-                True ->
-                    "JT"
-
-                False ->
-                    "JF"
-
-        Nothing ->
-            "Not init"
-
-
-printBlah2 : IsRepeatFraction -> String
-printBlah2 x =
-    case x of
-        Just True ->
-            "JT"
-
-        Just False ->
-            "JF"
-
-        Nothing ->
-            "Not init"
+import Set
 
 
 main =
-    Html.text <| printBlah2 (Just True)
+    let
+        s : Set.Set ( Int, Int )
+        s =
+            Set.singleton ( 1, 2 )
+
+        sn =
+            if Set.member ( 1, 2 ) s then
+                s
+
+            else
+                Set.insert ( 1, 2 ) s
+    in
+    Html.text <| Debug.toString sn
