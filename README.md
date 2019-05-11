@@ -1,8 +1,8 @@
-# Elm Starter Project
+# cantors_colors
 
-# Notes
+TODO: make blog post - https://www.homeschoolmath.net/teaching/rational-numbers-countable.php
+TODO: make static site with https://cloudblogs.microsoft.com/opensource/2019/04/05/publishing-github-pages-from-azure-pipelines/
 
-TODO:
 
 # Install
 
@@ -25,34 +25,7 @@ TODO:
 
 # Use
 
-## Start Project
-
-```bash
-elm init
-```
-
-## Develop
-
-### `elm reactor`
-
-Note: `elm reactor` doesn't work if you have HTML or JavaScript code. See https://github.com/rtfeldman/elm-spa-example#building for that.
-
-- + can click through source files
-- + no dependencies
-- + shows compilation errors in browser
-- - no complex args (like `--debug`)
-- - requires page reload on file change
-
-```
-./dev_env.sh
-```
-
 ### `elm-live`
-
-- + live-reloading on file change
-- + works with more complex builds (like `--debug`)
-- - doesn't show compilation errors in browser
-- - extra dependency
 
 - Install: `npm install -g elm-live`
 
