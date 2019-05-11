@@ -1,6 +1,8 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
+import Browser.Dom exposing (Viewport, getViewport)
+import Browser.Events exposing (onResize)
 import Debug
 import Html as H
 import Html.Attributes as Ha
@@ -8,10 +10,16 @@ import Html.Events exposing (onClick)
 import Set
 import Svg as S
 import Svg.Attributes as Sa
+import Task
 
 
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
 
@@ -156,8 +164,8 @@ type alias Model =
     }
 
 
-init : Model
-init =
+init : () -> ( Model, Cmd Msg )
+init _ =
     let
         numSquares =
             5000
@@ -165,7 +173,9 @@ init =
         diagramWidth =
             900
     in
-    Model numSquares diagramWidth (makeListOfPositions numSquares)
+    ( Model numSquares diagramWidth (makeListOfPositions numSquares)
+    , Task.perform GetViewport getViewport
+    )
 
 
 
@@ -173,14 +183,31 @@ init =
 
 
 type Msg
-    = PlaceHolder
+    = Resize Int Int
+    | GetViewport Viewport
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        PlaceHolder ->
-            model
+        Resize width height ->
+            ( { model | diagramWidth = min width height }
+            , Cmd.none
+            )
+
+        GetViewport { viewport } ->
+            ( { model | diagramWidth = min (round viewport.width) (round viewport.height) }
+            , Cmd.none
+            )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    onResize Resize
 
 
 
