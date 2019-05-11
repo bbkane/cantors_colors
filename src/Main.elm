@@ -292,6 +292,8 @@ viewRects model =
             [ Ha.placeholder "numSquares"
             , Ha.value (String.fromInt model.numSquares)
             , Html.Events.onInput ChangeNumSquares
+            , Ha.style "display" "inline-block"
+            , Ha.style "vertical-align" "top"
 
             ]
             []
