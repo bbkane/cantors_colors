@@ -23,9 +23,7 @@ main =
 
 
 
--- TODO: subscribe to window size changes
 -- Utils
--- -- Ratio
 
 
 type NextPosDirection
@@ -85,6 +83,9 @@ nextPos current =
             { current | x = current.x + 1, y = current.y - 1, nextDir = newNextDir }
 
 
+{-| take a function and a starting value. call the function on the starting value.
+Call the function on that output. Do that n times and return a list of all them, including the starting value
+-}
 repeatedlyCompose : (a -> a) -> a -> Int -> List a
 repeatedlyCompose func val timesLeft =
     repeatedlyComposeHelper func val (timesLeft - 1) [ val ]
@@ -110,10 +111,6 @@ gcd a b =
 
     else
         gcd b (remainderBy b a)
-
-
-
--- TODO: test this maybe
 
 
 markRepeatedFractions : List Pos -> List Pos
@@ -150,7 +147,7 @@ markRepeatedFractionsHelper positions seen acc =
 
 makeListOfPositions : Int -> List Pos
 makeListOfPositions numSquares =
-    repeatedlyCompose nextPos (Pos 0 0 Right Nothing) numSquares |> markRepeatedFractions
+    repeatedlyCompose nextPos (Pos 0 0 Down Nothing) numSquares |> markRepeatedFractions
 
 
 
@@ -171,7 +168,7 @@ init _ =
             5000
 
         diagramWidth =
-            900
+            0
     in
     ( Model numSquares diagramWidth (makeListOfPositions numSquares)
     , Task.perform GetViewport getViewport
@@ -185,18 +182,52 @@ init _ =
 type Msg
     = Resize Int Int
     | GetViewport Viewport
+    | ChangeNumSquares String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Resize width height ->
-            ( { model | diagramWidth = min width height }
+            -- The * 0.9 is a hack to get an input box in... Should probably use CSS
+            ( { model | diagramWidth = min width height |> toFloat |> (*) 1.0 |> round }
             , Cmd.none
             )
 
         GetViewport { viewport } ->
-            ( { model | diagramWidth = min (round viewport.width) (round viewport.height) }
+            ( { model
+                | diagramWidth =
+                    min (round viewport.width) (round viewport.height)
+                        |> toFloat
+                        |> (*) 1.0
+                        |> round
+              }
+            , Cmd.none
+            )
+
+        ChangeNumSquares numSquaresStr ->
+            let
+                newNumSquares =
+                    if numSquaresStr == "" then
+                        0
+
+                    else
+                        String.toInt numSquaresStr |> Maybe.withDefault model.numSquares
+
+                newPositions =
+                    if newNumSquares == 0 then
+                        []
+
+                    else if newNumSquares == model.numSquares then
+                        model.positions
+
+                    else
+                        makeListOfPositions newNumSquares
+            in
+            ( { model
+                | numSquares = newNumSquares
+                , positions = newPositions
+              }
             , Cmd.none
             )
 
@@ -231,7 +262,8 @@ viewRects model =
 
             else
                 -- As x increases, opacity increases
-                [ Sa.fill "black", Sa.fillOpacity (String.fromFloat (toFloat x / (toFloat x + toFloat y))) ]
+                -- [ Sa.fill "black", Sa.fillOpacity (String.fromFloat (toFloat x / (toFloat x + toFloat y))) ]
+                [ Sa.fill "black" ]
 
         viewRect : Int -> Int -> IsRepeatedFraction -> S.Svg Msg
         viewRect x y irf =
@@ -255,9 +287,18 @@ viewRects model =
         sideLength =
             String.fromInt <| ceiling (sqrt (toFloat model.numSquares * 2)) + 1
     in
-    S.svg
-        [ Sa.width <| String.fromInt model.diagramWidth
-        , Sa.height <| String.fromInt model.diagramWidth
-        , Sa.viewBox <| "0 0 " ++ sideLength ++ " " ++ sideLength
+    H.div []
+        [ H.input
+            [ Ha.placeholder "numSquares"
+            , Ha.value (String.fromInt model.numSquares)
+            , Html.Events.onInput ChangeNumSquares
+
+            ]
+            []
+        , S.svg
+            [ Sa.width <| String.fromInt model.diagramWidth
+            , Sa.height <| String.fromInt model.diagramWidth
+            , Sa.viewBox <| "0 0 " ++ sideLength ++ " " ++ sideLength
+            ]
+            sps
         ]
-        sps
